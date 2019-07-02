@@ -9,3 +9,11 @@ Example:
 3 is the number of values which will be in the variable v.
 The minterms are 1,3,6,7.
 0 is the only don't care value.
+
+To run this on the terminal: write the following
+
+g++ -g Source.cpp -o final
+./final 
+
+
+Just make sure the test file is in the same directory as Source.cpp file. 
