@@ -6,13 +6,14 @@
 #include <vector>
 #include <bitset>
 #include <map>
+#include <set>
 using namespace std;
 
 vector<int> minterms;
 vector<int> dontcares;
 vector < vector < vector <string> > > matrix;
-vector<string> PI;
-vector<string> EPI;
+set<string> PI;
+set<string> EPI;
 map<int, string> newTable;
 char equi[16];//an array to store variable equivalent to each digit
 map<int, bool> checked;
@@ -78,7 +79,7 @@ void EPIcovered(string s) {
 }
 void GetBinaryString(int n) {
 	// The integer n is converted to a 16 digit binary value stored in the string variable s.
-	// It is then reduced to a size of v, for the number of values in the program.
+	// It is then reduced to a size of v, for the number of inputs in the program.
 	// The string is then checked for the number of 1s inside it.
 	// At the end of the function, s is stored in the matrix according to the number of 1s in its binary value.
 
@@ -92,7 +93,7 @@ void GetBinaryString(int n) {
 	}
 	matrix[0][counter].push_back(s);
 }
-void Compare(int n, int m, string& s1, string& s2) {//n is the index of the column before the column of insertion and m is the number of ones
+bool Compare(int n, int m, string& s1, string& s2) {//n is the index of the column before the column of insertion and m is the number of ones
 	// The function compares the strings s1 and s2, and checks for any differences. The differences are replaced with an underscore.
 	// If there is only one difference and the underscore equivalent of the binary string does not already exist in the following column, it is placed in the column and the strings are marked with 'T'.
 	int difference = 0;
@@ -104,10 +105,14 @@ void Compare(int n, int m, string& s1, string& s2) {//n is the index of the colu
 		}
 	}
 	if (difference == 1) {
+	//	bool test=false;
+		bool flag =std::any_of(temp.begin(), temp.end(), ::isdigit);
+		if(!flag) return true;
 		if (!binary_search(matrix[n + 1][m].begin(), matrix[n + 1][m].end(), temp)) matrix[n + 1][m].push_back(temp);
 		s1 += 'T';
 		s2 += 'T';
 	}
+	return false;
 }
 string ToBoolean(string s) {
 	// The string is converted to the boolean equivalent. This is achieved by using the equi array, which stores all possible letters.
@@ -153,14 +158,19 @@ int main() {
 	myfile.close();
 	int m1, d1;
 	int i = 0, j = 0;
-	bool flag = true;
+	bool flag=false;
+	if(!std::any_of(str[1].begin(), str[1].end(), ::isdigit)) { //This validation check is made especially to check if there are no minterms provided.
+		cout<<"Function is always false.\n";
+		return 0;}
+    if(str[1].size()!= 0) flag= true;
 	while (flag) {
 		minterms.push_back(stoi(str[1].substr(0, str[1].find(','))));
 		if (str[1].find(',') == string::npos) flag = false;
 		str[1] = str[1].substr(str[1].find(',') + 1);
 
 	}
-	flag = true;
+	flag=false;
+    if(std::any_of(str[2].begin(), str[2].end(), ::isdigit))	flag = true;
 	while (flag) {
 		dontcares.push_back(stoi(str[2].substr(0, str[2].find(','))));
 		if (str[2].find(',') == string::npos) flag = false;
@@ -180,7 +190,7 @@ int main() {
 	for (int i = 0; i<v; i++) matrix[i].resize(v + 1);
 	for (int i = 0; i<m; i++) {
 		if (minterms[i]>pow(2, v) - 1) {
-			cout << "No minterm can exceed" << pow(2, v) - 1 << endl;
+			cout << "No minterm can exceed " << pow(2, v) - 1 << endl;
 			return 0;
 		}
 		if (binary_search(dontcares.begin(), dontcares.end(), minterms[i])) {
@@ -197,7 +207,7 @@ int main() {
 	}
 	for (int i = 0; i<d; i++) {
 		if (dontcares[i]>pow(2, v) - 1) {
-			cout << "No dont care can exceed" << pow(2, v) - 1 << endl;
+			cout << "No dont care can exceed " << pow(2, v) - 1 << endl;
 			return 0;
 		}
 		for (int j = i + 1; j<m; j++) {
@@ -207,11 +217,15 @@ int main() {
 		}
 		GetBinaryString(dontcares[i]);
 	}
+	bool f;
 	for (int g = 0; g<v; g++) {
 		for (int i = 0; i<v; i++) {
 			for (int j = 0; j<matrix[g][i].size(); j++) {
 				for (int k = 0; k<matrix[g][i + 1].size(); k++) {
-					Compare(g, i, matrix[g][i][j], matrix[g][i + 1][k]);
+					if(Compare(g, i, matrix[g][i][j], matrix[g][i + 1][k])){
+						cout<<"There are no PIs or EPIs, the function is always true.\n";//if all possible terms are entered as minterms and dont' cares
+						return 0;
+					};
 				}
 			}
 		}
@@ -223,7 +237,7 @@ int main() {
 		for (int i = 0; i<v; i++) {
 			for (int j = 0; j<matrix[g][i].size(); j++) {
 				if (matrix[g][i][j].at(matrix[g][i][j].size() - 1) != 'T') {
-					PI.push_back(matrix[g][i][j]);
+					PI.insert(matrix[g][i][j]);
 				}
 			}
 		}
@@ -232,24 +246,24 @@ int main() {
 	// PIs are displayed in all formats
 
 	cout << "These are the prime implicants \n";
-	for (int i = 0; i<PI.size(); i++) {
-		Translate(PI[i], PI[i]);
-		cout << PI[i] << " " << ToBoolean(PI[i]) << "(";
-		GetMinterms(PI[i]);
+	for (set<std::string>::iterator it = PI.begin();it != PI.end(); it++) {
+		Translate((*it), (*it));
+		cout << (*it) << "               " << ToBoolean((*it)) << "       (";
+		GetMinterms((*it));
 		cout << ")" << endl;
 	}
 	for (int i = 0; i<m; i++) {
 		if (newTable[minterms[i]].size() == v) {
-			EPI.push_back(newTable[minterms[i]]);
+			EPI.insert(newTable[minterms[i]]);
 		}
 	}
 
 	// EPIs are added and displayed.
 
 	cout << "These are the essential prime implicants\n";
-	for (int i = 0; i<EPI.size(); i++) {
-		cout << EPI[i] << " " << ToBoolean(EPI[i]) << endl;
-		EPIcovered(EPI[i]);
+	for (set<std::string>::iterator it = EPI.begin();it != EPI.end(); it++) {
+		cout << (*it) << "               " << ToBoolean((*it)) << endl;
+		EPIcovered((*it));
 	}
 
 	// Non essential PIs are displayed.
